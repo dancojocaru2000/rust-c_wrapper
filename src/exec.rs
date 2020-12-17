@@ -2,7 +2,7 @@ use std::{ffi::CString, ptr::null_mut};
 
 use crate::{c_error::CError, c_result::CResult};
 
-pub unsafe fn exec(pathname: &str, argv: Vec<String>) -> CResult<()> {
+pub fn exec(pathname: &str, argv: Vec<String>) -> CResult<()> {
 	let pathname = CString::new(pathname).unwrap();	// A Rust String will never error
 	let mut argv: Vec<_> = argv.into_iter().map(
 		|arg| CString::new(arg).unwrap()
@@ -14,7 +14,7 @@ pub unsafe fn exec(pathname: &str, argv: Vec<String>) -> CResult<()> {
 
 	let argv_ptr = argv.as_ptr();
 
-	let result = libc::execv(pathname.as_ptr(), argv_ptr);
+	let result = unsafe { libc::execv(pathname.as_ptr(), argv_ptr) }; 
 
 	// At this point, the program continues only if execv encountered an error
 
@@ -23,7 +23,7 @@ pub unsafe fn exec(pathname: &str, argv: Vec<String>) -> CResult<()> {
 	Err(CError::new_from_errno())
 }
 
-pub unsafe fn exece(pathname: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
+pub fn exece(pathname: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
 	let pathname = CString::new(pathname).unwrap();	// A Rust String will never error
 	let mut argv: Vec<_> = argv.into_iter().map(
 		|arg| CString::new(arg).unwrap()
@@ -45,7 +45,7 @@ pub unsafe fn exece(pathname: &str, argv: Vec<String>, env: Vec<String>) -> CRes
 
 	let env_ptr = env.as_ptr();
 
-	let result = libc::execve(pathname.as_ptr(), argv_ptr, env_ptr);
+	let result = unsafe { libc::execve(pathname.as_ptr(), argv_ptr, env_ptr) };
 
 	// At this point, the program continues only if execv encountered an error
 
@@ -54,7 +54,7 @@ pub unsafe fn exece(pathname: &str, argv: Vec<String>, env: Vec<String>) -> CRes
 	Err(CError::new_from_errno())
 }
 
-pub unsafe fn execp(file: &str, argv: Vec<String>) -> CResult<()> {
+pub fn execp(file: &str, argv: Vec<String>) -> CResult<()> {
 	let file = CString::new(file).unwrap();	// A Rust String will never error
 	let mut argv: Vec<_> = argv.into_iter().map(
 		|arg| CString::new(arg).unwrap()
@@ -66,7 +66,7 @@ pub unsafe fn execp(file: &str, argv: Vec<String>) -> CResult<()> {
 
 	let argv_ptr = argv.as_ptr();
 
-	let result = libc::execvp(file.as_ptr(), argv_ptr);
+	let result = unsafe { libc::execvp(file.as_ptr(), argv_ptr) };
 
 	// At this point, the program continues only if execv encountered an error
 
@@ -75,7 +75,7 @@ pub unsafe fn execp(file: &str, argv: Vec<String>) -> CResult<()> {
 	Err(CError::new_from_errno())
 }
 
-pub unsafe fn execpe(file: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
+pub fn execpe(file: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
 	let file = CString::new(file).unwrap();	// A Rust String will never error
 	let mut argv: Vec<_> = argv.into_iter().map(
 		|arg| CString::new(arg).unwrap()
@@ -97,7 +97,7 @@ pub unsafe fn execpe(file: &str, argv: Vec<String>, env: Vec<String>) -> CResult
 
 	let env_ptr = env.as_ptr();
 
-	let result = libc::execvpe(file.as_ptr(), argv_ptr, env_ptr);
+	let result = unsafe { libc::execvpe(file.as_ptr(), argv_ptr, env_ptr) };
 
 	// At this point, the program continues only if execv encountered an error
 
