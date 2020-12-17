@@ -7,6 +7,13 @@ pub enum CError {
 	Unknown(libc::c_int)
 }
 
+impl CError {
+    pub fn new_from_errno() -> Self {
+        let errno = errno::errno();
+        Self::from(errno.0)
+    }
+}
+
 impl From<libc::c_int> for CError {
     fn from(errno: libc::c_int) -> Self {
         match errno {
