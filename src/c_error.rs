@@ -1,38 +1,54 @@
 use std::ffi::CStr;
 
-pub enum CError {
-	EAGAIN,
-	ENOMEM,
-	ENOSYS,
-	Unknown(libc::c_int)
+macro_rules! generate_cerror {
+    ($($rust_names:ident; to C $c_names:ident),+) => {
+        #[derive(Clone, Copy)]
+        pub enum CError {
+            $(
+                $rust_names,
+            )+
+            Unknown(libc::c_int),
+        }
+
+        impl From<libc::c_int> for CError {
+            fn from(errno: libc::c_int) -> Self {
+                match errno {
+                    $(
+                        libc::$c_names => Self::$rust_names,
+                    )+
+                    _ => Self::Unknown(errno)
+                }
+            }
+        }
+
+        impl Into<libc::c_int> for &CError {
+            fn into(self) -> libc::c_int {
+                match self {
+                    $(
+                        CError::$rust_names => libc::$c_names,
+                    )+
+                    CError::Unknown(errno) => *errno
+                }
+            }
+        }
+    };
 }
+
+
+generate_cerror!(
+    Again; to C EAGAIN,
+    NoMemory; to C ENOMEM,
+    NoSys; to C ENOSYS,
+    Child; to C ECHILD,
+    Invalid; to C EINVAL,
+    Interrupted;  to C EINTR,
+    TooBig; to C E2BIG
+);
 
 impl CError {
     pub fn new_from_errno() -> Self {
         let errno = errno::errno();
         Self::from(errno.0)
-    }
-}
-
-impl From<libc::c_int> for CError {
-    fn from(errno: libc::c_int) -> Self {
-        match errno {
-			libc::EAGAIN => Self::EAGAIN,
-			libc::ENOMEM => Self::ENOMEM,
-			libc::ENOSYS => Self::ENOSYS,
-			_ => Self::Unknown(errno)
-		}
-    }
-}
-
-impl Into<libc::c_int> for &CError {
-    fn into(self) -> libc::c_int {
-        match self {
-            CError::EAGAIN => libc::EAGAIN,
-            CError::ENOMEM => libc::ENOMEM,
-            CError::ENOSYS => libc::ENOSYS,
-            CError::Unknown(errno) => *errno
-        }
     }
 }
 
