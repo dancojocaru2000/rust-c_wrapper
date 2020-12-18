@@ -1,8 +1,8 @@
 use std::ffi::CStr;
 
 macro_rules! generate_cerror {
-    ($($rust_names:ident; to C $c_names:ident),+) => {
-        #[derive(Clone, Copy)]
+    ($($rust_names:ident; to C $c_names:ident),+$(,)*) => {
+        #[derive(Clone, Copy, Debug)]
         pub enum CError {
             $(
                 $rust_names,
@@ -14,6 +14,7 @@ macro_rules! generate_cerror {
             fn from(errno: libc::c_int) -> Self {
                 match errno {
                     $(
+                        #[allow(unreachable_patterns)]
                         libc::$c_names => Self::$rust_names,
                     )+
                     _ => Self::Unknown(errno)
@@ -31,6 +32,17 @@ macro_rules! generate_cerror {
                 }
             }
         }
+
+        impl Into<libc::c_int> for CError {
+            fn into(self) -> libc::c_int {
+                match self {
+                    $(
+                        CError::$rust_names => libc::$c_names,
+                    )+
+                    CError::Unknown(errno) => errno
+                }
+            }
+        }
     };
 }
 
@@ -42,7 +54,20 @@ generate_cerror!(
     Child; to C ECHILD,
     Invalid; to C EINVAL,
     Interrupted;  to C EINTR,
-    TooBig; to C E2BIG
+    TooBig; to C E2BIG,
+    BadFileDescriptor; to C EBADF,
+    MFile; to C EMFILE,
+    IO; to C EIO,
+    NoSpace; to C ENOSPC,
+    DiskQuota; to C EDQUOT,
+    WouldBlock; to C EWOULDBLOCK,
+    DestinationAddressRequired; to C EDESTADDRREQ,
+    Fault; to C EFAULT,
+    FileTooLarge; to C EFBIG,
+    Perm; to C EPERM,
+    BrokenPipe; to C EPIPE,
+    IsDirectory; to C EISDIR,
+    NFile; to C ENFILE,
 );
 
 impl CError {
