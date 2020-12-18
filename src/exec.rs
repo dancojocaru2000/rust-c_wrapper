@@ -105,4 +105,3 @@ pub fn execpe(file: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
 
 	Err(CError::new_from_errno())
 }
-
