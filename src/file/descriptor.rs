@@ -22,24 +22,21 @@ impl FileDescriptor {
 	}
 
 	pub fn try_clone_stdin() -> CResult<Self> {
-		let fd = unsafe { Self::from_stdin() };
-		let clone_fd = fd.try_clone();
-		unsafe { fd.to_unowned() };
-		clone_fd
+		Self::wrap_unowned(libc::STDIN_FILENO, |fd| {
+			fd.try_clone()
+		})
 	}
 
 	pub fn try_clone_stdout() -> CResult<Self> {
-		let fd = unsafe { Self::from_stdout() };
-		let clone_fd = fd.try_clone();
-		unsafe { fd.to_unowned() };
-		clone_fd
+		Self::wrap_unowned(libc::STDOUT_FILENO, |fd| {
+			fd.try_clone()
+		})
 	}
 
 	pub fn try_clone_stderr() -> CResult<Self> {
-		let fd = unsafe { Self::from_stderr() };
-		let clone_fd = fd.try_clone();
-		unsafe { fd.to_unowned() };
-		clone_fd
+		Self::wrap_unowned(libc::STDERR_FILENO, |fd| {
+			fd.try_clone()
+		})
 	}
 }
 
@@ -107,6 +104,13 @@ impl FileDescriptor {
 
 	pub unsafe fn get_fd(&mut self) -> libc::c_int {
 		self.fd
+	}
+
+	pub fn wrap_unowned<CB, T>(fd: libc::c_int, callback: CB) -> T where CB: FnOnce(&FileDescriptor) -> T {
+		let fd = unsafe { FileDescriptor::from_unowned(fd) };
+		let result = callback(&fd);
+		unsafe { fd.to_unowned() };
+		result
 	}
 }
 
