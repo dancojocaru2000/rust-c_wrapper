@@ -31,3 +31,15 @@ pub struct WaitResult {
 	pub pid: libc::pid_t,
 	pub wstatus: libc::c_int,
 }
+
+pub mod options {
+	pub use libc::{
+		WNOHANG,
+		WUNTRACED,
+	};
+
+	#[cfg(target_os = "linux")]
+	pub use libc::{
+		WCONTINUED,
+	};
+}

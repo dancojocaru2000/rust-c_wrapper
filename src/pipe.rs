@@ -48,3 +48,15 @@ impl PipeResult {
 		self.read_fd
 	}
 }
+
+pub mod flags {
+	pub use libc::{
+		O_CLOEXEC,
+		O_NONBLOCK,
+	};
+
+	#[cfg(target_os = "linux")]
+	pub use libc::{
+		O_DIRECT,
+	};
+}
