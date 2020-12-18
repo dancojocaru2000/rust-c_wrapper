@@ -5,3 +5,4 @@ pub mod exec;
 pub mod wait;
 pub mod file_descriptor;
 pub mod pipe;
+pub mod file;

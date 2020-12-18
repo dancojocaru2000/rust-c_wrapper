@@ -4,7 +4,7 @@ use crate::c_result::CResult;
 use crate::c_error::CError;
 
 pub struct FileDescriptor {
-	fd: libc::c_int
+	pub(crate) fd: libc::c_int
 }
 
 // stdin, stdout, stderr
@@ -91,6 +91,7 @@ impl FileDescriptor {
 	}
 }
 
+// unsafe stuff
 impl FileDescriptor {
 	pub unsafe fn from_unowned(fd: libc::c_int) -> Self {
 		Self {
@@ -104,6 +105,12 @@ impl FileDescriptor {
 		result
 	}
 
+	pub unsafe fn get_fd(&mut self) -> libc::c_int {
+		self.fd
+	}
+}
+
+impl FileDescriptor {
 	pub fn close(&mut self) -> CResult<()> {
 		let result = unsafe { libc::close(self.fd) };
 
