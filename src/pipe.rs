@@ -1,4 +1,4 @@
-use crate::{c_result::CResult, file_descriptor::FileDescriptor};
+use crate::{c_result::CResult, file::FileDescriptor};
 use crate::c_error::CError;
 
 pub fn pipe() -> CResult<PipeResult> {

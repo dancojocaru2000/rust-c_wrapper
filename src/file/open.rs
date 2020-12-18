@@ -2,7 +2,9 @@ use std::ffi::CString;
 
 use libc::{c_int, mode_t};
 
-use crate::{c_error::CError, c_result::CResult, file_descriptor::FileDescriptor};
+use crate::{c_error::CError, c_result::CResult};
+
+use super::descriptor::FileDescriptor;
 
 pub fn open<Path: Into<CString>>(pathname: Path) -> CResult<FileDescriptor> {
 	open_with_flags(pathname, 0)
