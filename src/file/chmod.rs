@@ -33,8 +33,9 @@ pub fn chmod_fd(fd: &mut FileDescriptor, mode: mode_t) -> CResult<()> {
 	fchmod(fd, mode)	
 }
 
-pub fn fchmod_at(dir: &FileDescriptor, fd: &mut FileDescriptor, mode: mode_t) -> CResult<()> {
-	match unsafe { libc::fchmodat(dir.fd, fd.fd, mode) } {
+pub fn fchmod_at<Path: Into<CString>>(dir: &FileDescriptor, pathname: Path, mode: mode_t, flags: libc::c_int) -> CResult<()> {
+	let pathname: CString = pathname.into();
+	match unsafe { libc::fchmodat(dir.fd, pathname.as_ptr(), mode, flags) } {
 		0 => Ok(()),
 		-1 => Err(CError::new_from_errno()),
 		bad_return => panic!(format!(
@@ -44,6 +45,6 @@ pub fn fchmod_at(dir: &FileDescriptor, fd: &mut FileDescriptor, mode: mode_t) ->
 	}
 }
 
-pub fn chmod_fd_at(dir: &FileDescriptor, fd: &mut FileDescriptor, mode: mode_t) -> CResult<()> {
-	fchmod_at(dir, fd, mode)
+pub fn chmod_fd_at<Path: Into<CString>>(dir: &FileDescriptor, pathname: Path, mode: mode_t, flags: libc::c_int) -> CResult<()> {
+	fchmod_at(dir, pathname, mode, flags)
 }
