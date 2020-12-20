@@ -23,3 +23,19 @@ pub fn getcwd() -> CResult<String> {
 		}
 	}
 }
+
+pub fn getcwd_tilde() -> CResult<String> {
+	getcwd().map(|wd| -> String {
+		if let Some(home) = std::env::var("HOME").ok() {
+			if wd.starts_with(&home) {
+				"~".to_string() + &wd[home.len()..]
+			}
+			else {
+				wd
+			}
+		}
+		else {
+			wd
+		}
+	})
+}
