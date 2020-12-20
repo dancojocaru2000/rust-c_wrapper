@@ -68,6 +68,8 @@ generate_cerror!(
     BrokenPipe; to C EPIPE,
     IsDirectory; to C EISDIR,
     NFile; to C ENFILE,
+    Range; to C ERANGE,
+    NotFound; to C ENOENT,
 );
 
 impl CError {
