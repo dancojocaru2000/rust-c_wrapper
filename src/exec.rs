@@ -75,6 +75,7 @@ pub fn execp(file: &str, argv: Vec<String>) -> CResult<()> {
 	Err(CError::new_from_errno())
 }
 
+#[cfg(target_os = "linux")]
 pub fn execpe(file: &str, argv: Vec<String>, env: Vec<String>) -> CResult<()> {
 	let file = CString::new(file).unwrap();	// A Rust String will never error
 	let mut argv: Vec<_> = argv.into_iter().map(

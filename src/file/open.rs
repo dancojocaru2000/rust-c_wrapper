@@ -20,7 +20,7 @@ pub fn open_with_flags<Path: Into<CString>>(pathname: Path, flags: c_int) -> CRe
 
 pub fn open_with_mode<Path: Into<CString>>(pathname: Path, flags: c_int, mode: mode_t) -> CResult<FileDescriptor> {
 	let pathname: CString = pathname.into();
-	match unsafe { libc::open(pathname.as_ptr(), flags, mode) } {
+	match unsafe { libc::open(pathname.as_ptr(), flags, mode as libc::c_uint) } {
 		-1 => Err(CError::new_from_errno()),
 		fd => Ok(unsafe { FileDescriptor::from_unowned(fd) }),
 	}
@@ -52,7 +52,7 @@ pub fn openat_with_flags<Path: Into<CString>>(dir: &FileDescriptor, pathname: Pa
 
 pub fn openat_with_mode<Path: Into<CString>>(dir: &FileDescriptor, pathname: Path, flags: c_int, mode: mode_t) -> CResult<FileDescriptor> {
 	let pathname: CString = pathname.into();
-	match unsafe { libc::openat(dir.fd, pathname.as_ptr(), flags, mode) } {
+	match unsafe { libc::openat(dir.fd, pathname.as_ptr(), flags, mode as libc::c_uint) } {
 		-1 => Err(CError::new_from_errno()),
 		fd => Ok(unsafe { FileDescriptor::from_unowned(fd) }),
 	}
@@ -63,11 +63,9 @@ pub mod flags {
 		O_APPEND,
 		O_ASYNC,
 		O_CREAT,
-		O_DIRECT,
 		O_DIRECTORY,
 		O_DSYNC,
 		O_EXCL,
-		O_LARGEFILE,
 		O_NOCTTY,
 		O_NOFOLLOW,
 		O_NONBLOCK,
@@ -82,5 +80,7 @@ pub mod flags {
 		O_NOATIME,
 		O_PATH,
 		O_TMPFILE,
+		O_DIRECT,
+		O_LARGEFILE,
 	};
 }
