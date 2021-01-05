@@ -1,8 +1,9 @@
 use std::ffi::CStr;
+use serde::{Serialize, Deserialize};
 
 macro_rules! generate_cerror {
     ($($rust_names:ident; to C $c_names:ident),+$(,)*) => {
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Deserialize, Serialize, Clone, Copy, Debug)]
         pub enum CError {
             $(
                 $rust_names,
@@ -70,6 +71,7 @@ generate_cerror!(
     NFile; to C ENFILE,
     Range; to C ERANGE,
     NotFound; to C ENOENT,
+    PermissionDenied; to C EACCES,
 );
 
 impl CError {

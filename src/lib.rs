@@ -6,3 +6,9 @@ pub mod wait;
 pub mod file;
 pub mod pipe;
 pub mod cwd;
+pub mod types {
+	pub use libc::{
+		c_int,
+		c_char,
+	};
+}
