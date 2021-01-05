@@ -60,6 +60,9 @@ pub fn openat_with_mode<Path: Into<CString>>(dir: &FileDescriptor, pathname: Pat
 
 pub mod flags {
 	pub use libc::{
+		O_RDONLY,
+		O_WRONLY,
+		O_RDWR,
 		O_APPEND,
 		O_ASYNC,
 		O_CREAT,
@@ -72,11 +75,11 @@ pub mod flags {
 		O_NDELAY,
 		O_SYNC,
 		O_TRUNC,
+		O_CLOEXEC,
 	};
 
 	#[cfg(target_os = "linux")]
 	pub use libc::{
-		O_CLOEXEC,
 		O_NOATIME,
 		O_PATH,
 		O_TMPFILE,
