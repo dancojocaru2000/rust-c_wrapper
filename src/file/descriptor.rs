@@ -10,31 +10,43 @@ pub struct FileDescriptor {
 // stdin, stdout, stderr
 impl FileDescriptor {
 	pub unsafe fn from_stdin() -> Self {
-		Self::from_unowned(libc::STDIN_FILENO)
+		Self::from_unowned(constants::STDIN_FILENO)
 	}
 
 	pub unsafe fn from_stdout() -> Self {
-		Self::from_unowned(libc::STDIN_FILENO)
+		Self::from_unowned(constants::STDIN_FILENO)
 	}
 
 	pub unsafe fn from_stderr() -> Self {
-		Self::from_unowned(libc::STDIN_FILENO)
+		Self::from_unowned(constants::STDIN_FILENO)
+	}
+
+	pub fn wrap_stdin<CB: FnOnce(&mut FileDescriptor) -> T, T>(callback: CB) -> T {
+		Self::wrap_unowned(constants::STDIN_FILENO, callback)
+	}
+
+	pub fn wrap_stdout<CB: FnOnce(&mut FileDescriptor) -> T, T>(callback: CB) -> T {
+		Self::wrap_unowned(constants::STDOUT_FILENO, callback)
+	}
+
+	pub fn wrap_stderr<CB: FnOnce(&mut FileDescriptor) -> T, T>(callback: CB) -> T {
+		Self::wrap_unowned(constants::STDERR_FILENO, callback)
 	}
 
 	pub fn try_clone_stdin() -> CResult<Self> {
-		Self::wrap_unowned(libc::STDIN_FILENO, |fd| {
+		Self::wrap_unowned(constants::STDIN_FILENO, |fd| {
 			fd.try_clone()
 		})
 	}
 
 	pub fn try_clone_stdout() -> CResult<Self> {
-		Self::wrap_unowned(libc::STDOUT_FILENO, |fd| {
+		Self::wrap_unowned(constants::STDOUT_FILENO, |fd| {
 			fd.try_clone()
 		})
 	}
 
 	pub fn try_clone_stderr() -> CResult<Self> {
-		Self::wrap_unowned(libc::STDERR_FILENO, |fd| {
+		Self::wrap_unowned(constants::STDERR_FILENO, |fd| {
 			fd.try_clone()
 		})
 	}
@@ -106,11 +118,39 @@ impl FileDescriptor {
 		self.fd
 	}
 
-	pub fn wrap_unowned<CB, T>(fd: libc::c_int, callback: CB) -> T where CB: FnOnce(&FileDescriptor) -> T {
-		let fd = unsafe { FileDescriptor::from_unowned(fd) };
-		let result = callback(&fd);
+	pub fn wrap_unowned<CB, T>(fd: libc::c_int, callback: CB) -> T where CB: FnOnce(&mut FileDescriptor) -> T {
+		let mut fd = unsafe { FileDescriptor::from_unowned(fd) };
+		let result = callback(&mut fd);
 		unsafe { fd.to_unowned() };
 		result
+	}
+
+	pub fn set_nonblocking(&mut self, nonblocking: bool) -> CResult<()> {
+		let previous = self.fcntl(libc::F_GETFL)?;
+		let current = if nonblocking {
+			previous | libc::O_NONBLOCK
+		}
+		else {
+			previous & !libc::O_NONBLOCK
+		};
+		if current != previous {
+			self.fcntl_with_arg(libc::F_SETFL, current)?;
+		}
+		Ok(())
+	}
+
+	pub fn fcntl(&self, command: libc::c_int) -> CResult<libc::c_int> {
+		match unsafe { libc::fcntl(self.fd, command) } {
+			-1 => Err(CError::new_from_errno()),
+			any => Ok(any),
+		}
+	}
+
+	pub fn fcntl_with_arg<Arg>(&self, command: libc::c_int, argument: Arg) -> CResult<libc::c_int> {
+		match unsafe { libc::fcntl(self.fd, command, argument) } {
+			-1 => Err(CError::new_from_errno()),
+			any => Ok(any),
+		}
 	}
 }
 
@@ -137,7 +177,7 @@ impl FileDescriptor {
 		}
 	}
 
-	pub fn read(&mut self, bytes: usize) -> CResult<Vec<u8>> {
+	pub fn read_bytes(&mut self, bytes: usize) -> CResult<Vec<u8>> {
 		let mut result = vec![];
 		result.resize(bytes, 0);
 
@@ -148,6 +188,39 @@ impl FileDescriptor {
 				Ok(result)
 			}			
 		}
+	}
+
+	pub fn read_exact(&mut self, bytes: usize) -> CResult<Vec<u8>> {
+		let mut result = vec![];
+		result.resize(bytes, 0);
+		let mut bytes_read = 0;
+
+		while bytes_read < bytes {
+			match unsafe { libc::read(self.fd, result[bytes_read..].as_mut_ptr() as *mut libc::c_void, result.len() - bytes_read)} {
+				-1 => return Err(CError::new_from_errno()),
+				br => {
+					bytes_read += br as usize;
+				}			
+			}
+		}
+
+		Ok(result)
+	}
+
+	pub unsafe fn read_any<T: Sized>(&mut self) -> CResult<T> {
+		let size = size_of::<T>();
+		// let mut reconstructed = unsafe { core::mem::zeroed() };
+		let mut reconstructed = core::mem::zeroed();
+		let result = self.read_exact(size)?;
+		let reconstructed_ptr: *mut T = &mut reconstructed;
+		// unsafe {
+			let mut reconstructed_bin_ptr: *mut u8 = core::mem::transmute(reconstructed_ptr);
+			for i in 0..size {
+				*reconstructed_bin_ptr = result[i];
+				reconstructed_bin_ptr = reconstructed_bin_ptr.add(1);
+			}
+		// }
+		Ok(reconstructed)
 	}
 
 	pub unsafe fn write_raw<T>(&mut self, ptr: *const T, size: usize) -> CResult<usize> {
@@ -170,9 +243,13 @@ impl FileDescriptor {
 		self.write_slice(&data)
 	}
 
-	pub fn write_any<T : Sized>(&mut self, data: &T) -> CResult<usize> {
+	pub fn write_any<T : Sized>(&mut self, data: T) -> CResult<usize> {
 		let size = size_of::<T>();
-		unsafe { self.write_raw(data, size) }
+		unsafe { self.write_raw(&data, size) }
+	}
+
+	pub fn is_a_tty(&self) -> bool {
+		unsafe { libc::isatty(self.fd) == 1 } 
 	}
 }
 
@@ -182,4 +259,12 @@ impl Drop for FileDescriptor {
 			let _ = self.close();
 		}
     }
+}
+
+pub mod constants {
+	pub use libc::{
+		STDIN_FILENO,
+		STDOUT_FILENO,
+		STDERR_FILENO,
+	};
 }
